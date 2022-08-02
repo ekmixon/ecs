@@ -353,7 +353,7 @@ class TestGeneratorsEsTemplate(unittest.TestCase):
             }
         }
 
-        exp = ["ecs_{}_acme".format(version)]
+        exp = [f"ecs_{version}_acme"]
         self.assertEqual(es_template.component_name_convention(version, test_map), exp)
 
 

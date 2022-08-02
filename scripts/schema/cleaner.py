@@ -78,15 +78,15 @@ def schema_mandatory_attributes(schema):
                                        list(schema['schema_details'].keys()))
     missing_attributes = ecs_helpers.list_subtract(SCHEMA_MANDATORY_ATTRIBUTES, current_schema_attributes)
     if len(missing_attributes) > 0:
-        msg = "Schema {} is missing the following mandatory attributes: {}.\nFound these: {}".format(
-            schema['field_details']['name'], ', '.join(missing_attributes), current_schema_attributes)
+        msg = f"Schema {schema['field_details']['name']} is missing the following mandatory attributes: {', '.join(missing_attributes)}.\nFound these: {current_schema_attributes}"
+
         raise ValueError(msg)
     if 'reusable' in schema['schema_details']:
         reuse_attributes = sorted(schema['schema_details']['reusable'].keys())
         missing_reuse_attributes = ecs_helpers.list_subtract(['expected', 'top_level'], reuse_attributes)
         if len(missing_reuse_attributes) > 0:
-            msg = "Reusable schema {} is missing the following reuse attributes: {}.\nFound these: {}".format(
-                schema['field_details']['name'], ', '.join(missing_reuse_attributes), reuse_attributes)
+            msg = f"Reusable schema {schema['field_details']['name']} is missing the following reuse attributes: {', '.join(missing_reuse_attributes)}.\nFound these: {reuse_attributes}"
+
             raise ValueError(msg)
 
 
@@ -123,9 +123,14 @@ def normalize_reuse_notation(schema):
             if 'at' in reuse_entry and 'as' in reuse_entry:
                 explicit_entry = reuse_entry
             else:
-                raise ValueError("When specifying reusable expected locations for {} " +
-                                 "with the dictionary notation, keys 'as' and 'at' are required. " +
-                                 "Got {}.".format(schema_name, reuse_entry))
+                raise ValueError(
+                    (
+                        "When specifying reusable expected locations for {} "
+                        + "with the dictionary notation, keys 'as' and 'at' are required. "
+                        + f"Got {schema_name}."
+                    )
+                )
+
         else:  # Make it explicit
             explicit_entry = {'at': reuse_entry, 'as': schema_name}
         explicit_entry['full'] = explicit_entry['at'] + '.' + explicit_entry['as']
@@ -206,9 +211,8 @@ def field_assertions_and_warnings(field):
         if 'beta' in field['field_details']:
             single_line_beta_description(field, strict=strict_mode)
         if field['field_details']['level'] not in ACCEPTABLE_FIELD_LEVELS:
-            msg = "Invalid level for field '{}'.\nValue: {}\nAcceptable values: {}".format(
-                field['field_details']['name'], field['field_details']['level'],
-                ACCEPTABLE_FIELD_LEVELS)
+            msg = f"Invalid level for field '{field['field_details']['name']}'.\nValue: {field['field_details']['level']}\nAcceptable values: {ACCEPTABLE_FIELD_LEVELS}"
+
             raise ValueError(msg)
 
 # Common
@@ -220,18 +224,19 @@ SHORT_LIMIT = 120
 def single_line_short_check(short_to_check, short_name):
     short_length = len(short_to_check)
     if "\n" in short_to_check or short_length > SHORT_LIMIT:
-        msg = "Short descriptions must be single line, and under {} characters (current length: {}).\n".format(
-            SHORT_LIMIT, short_length)
-        msg += "Offending field or field set: {}\nShort description:\n  {}".format(
-            short_name,
-            short_to_check)
+        msg = f"Short descriptions must be single line, and under {SHORT_LIMIT} characters (current length: {short_length}).\n"
+
+        msg += f"Offending field or field set: {short_name}\nShort description:\n  {short_to_check}"
+
         return msg
     return None
 
 
 def single_line_short_description(schema_or_field, strict=True):
-    error = single_line_short_check(schema_or_field['field_details']['short'], schema_or_field['field_details']['name'])
-    if error:
+    if error := single_line_short_check(
+        schema_or_field['field_details']['short'],
+        schema_or_field['field_details']['name'],
+    ):
         if strict:
             raise ValueError(error)
         else:
@@ -240,10 +245,11 @@ def single_line_short_description(schema_or_field, strict=True):
 
 def single_line_short_override_description(schema_or_field, strict=True):
     for field in schema_or_field['schema_details']['reusable']['expected']:
-        if not 'short_override' in field:
+        if 'short_override' not in field:
             continue
-        error = single_line_short_check(field['short_override'], field['full'])
-        if error:
+        if error := single_line_short_check(
+            field['short_override'], field['full']
+        ):
             if strict:
                 raise ValueError(error)
             else:

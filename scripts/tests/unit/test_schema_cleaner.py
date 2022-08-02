@@ -170,22 +170,19 @@ class TestSchemaCleaner(unittest.TestCase):
         for missing_attribute in ['name', 'description', 'type', 'level']:
             field = self.schema_process()['process']['fields']['pid']
             field['field_details'].pop(missing_attribute)
-            with self.assertRaisesRegex(ValueError,
-                                        "mandatory attributes: {}".format(missing_attribute)):
+            with self.assertRaisesRegex(ValueError, f"mandatory attributes: {missing_attribute}"):
                 cleaner.field_mandatory_attributes(field)
 
     def test_field_raises_on_alias_missing_path_attribute(self):
         field = self.schema_process()['process']['fields']['pid']
         field['field_details']['type'] = "alias"
-        with self.assertRaisesRegex(ValueError,
-                                    "mandatory attributes: {}".format("path")):
+        with self.assertRaisesRegex(ValueError, 'mandatory attributes: path'):
             cleaner.field_mandatory_attributes(field)
 
     def test_raises_on_missing_scaling_factor(self):
         field = self.schema_process()['process']['fields']['pid']
         field['field_details']['type'] = "scaled_float"
-        with self.assertRaisesRegex(ValueError,
-                                    "mandatory attributes: {}".format("scaling_factor")):
+        with self.assertRaisesRegex(ValueError, 'mandatory attributes: scaling_factor'):
             cleaner.field_mandatory_attributes(field)
 
     def test_field_simple_cleanup(self):

@@ -40,10 +40,7 @@ def base_first(ecs_flat):
 
 
 def save_csv(file, sorted_fields, version):
-    open_mode = "wb"
-    if sys.version_info >= (3, 0):
-        open_mode = "w"
-
+    open_mode = "w" if sys.version_info >= (3, 0) else "wb"
     with open(file, open_mode) as csvfile:
         schema_writer = csv.writer(csvfile,
                                    delimiter=',',
@@ -54,11 +51,7 @@ def save_csv(file, sorted_fields, version):
                                 "Type", "Level", "Normalization", "Example", "Description"])
         for field in sorted_fields:
             key_parts = field['flat_name'].split('.')
-            if len(key_parts) == 1:
-                field_set = 'base'
-            else:
-                field_set = key_parts[0]
-
+            field_set = 'base' if len(key_parts) == 1 else key_parts[0]
             indexed = str(field.get('index', True)).lower()
             schema_writer.writerow([
                 version,

@@ -45,7 +45,7 @@ def order_reuses(fields):
     foreign_reuses = {}
     self_nestings = {}
     for schema_name, schema in fields.items():
-        if not 'reusable' in schema['schema_details']:
+        if 'reusable' not in schema['schema_details']:
             continue
         reuse_order = schema['schema_details']['reusable']['order']
         for reuse_entry in schema['schema_details']['reusable']['expected']:
@@ -126,12 +126,12 @@ def ensure_valid_reuse(reused_schema, destination_schema=None):
     Second param is optional, if testing for a self-nesting (where source=destination).
     """
     if reused_schema['schema_details']['root']:
-        msg = "Schema {} has attribute root=true and therefore cannot be reused.".format(
-            reused_schema['field_details']['name'])
+        msg = f"Schema {reused_schema['field_details']['name']} has attribute root=true and therefore cannot be reused."
+
         raise ValueError(msg)
     elif destination_schema and destination_schema['schema_details']['root']:
-        msg = "Schema {} has attribute root=true and therefore cannot have other field sets reused inside it.".format(
-            destination_schema['field_details']['name'])
+        msg = f"Schema {destination_schema['field_details']['name']} has attribute root=true and therefore cannot have other field sets reused inside it."
+
         raise ValueError(msg)
 
 
@@ -171,15 +171,17 @@ def field_group_at_path(dotted_path, fields):
     for next_field in path:
         field = nesting.get(next_field, None)
         if not field:
-            raise ValueError("Field {} not found, failed to find {}".format(dotted_path, next_field))
+            raise ValueError(f"Field {dotted_path} not found, failed to find {next_field}")
         nesting = field.get('fields', None)
         if not nesting:
             field_type = field['field_details']['type']
             if field_type in ['object', 'group', 'nested']:
                 nesting = field['fields'] = {}
             else:
-                raise ValueError("Field {} (type {}) already exists and cannot have nested fields".format(
-                    dotted_path, field_type))
+                raise ValueError(
+                    f"Field {dotted_path} (type {field_type}) already exists and cannot have nested fields"
+                )
+
     return nesting
 
 
@@ -201,4 +203,4 @@ def field_finalizer(details, path):
     details['field_details']['dashed_name'] = re.sub('[_\.]', '-', flat_name).replace('@', '')
     if 'multi_fields' in details['field_details']:
         for mf in details['field_details']['multi_fields']:
-            mf['flat_name'] = flat_name + '.' + mf['name']
+            mf['flat_name'] = f'{flat_name}.' + mf['name']

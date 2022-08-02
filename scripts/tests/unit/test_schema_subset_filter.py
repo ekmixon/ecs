@@ -43,7 +43,7 @@ class TestSchemaSubsetFilter(unittest.TestCase):
         subsets = {}
         subset_filter.merge_subsets(subsets, basics)
         subset_filter.merge_subsets(subsets, network)
-        expected_subsets = {**basics, **network}
+        expected_subsets = basics | network
         self.assertEqual(subsets, expected_subsets)
 
     def test_merging_superset(self):

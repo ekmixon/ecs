@@ -51,9 +51,7 @@ def dict_sorted_by_keys(dct, sort_keys):
     for key in dct:
         nested = dct[key]
 
-        sort_criteria = []
-        for sort_key in sort_keys:
-            sort_criteria.append(nested[sort_key])
+        sort_criteria = [nested[sort_key] for sort_key in sort_keys]
         sort_criteria.append(nested)
         tuples.append(sort_criteria)
 
@@ -77,7 +75,7 @@ def fields_subset(subset, fields):
     for key, val in subset.items():
         for option in val:
             if option not in allowed_options:
-                raise ValueError('Unsupported option found in subset: {}'.format(option))
+                raise ValueError(f'Unsupported option found in subset: {option}')
         # A missing fields key is shorthand for including all subfields
         if 'fields' not in val or val['fields'] == '*':
             retained_fields[key] = fields[key]
@@ -157,7 +155,7 @@ def make_dirs(path):
     try:
         os.makedirs(path, exist_ok=True)
     except OSError as e:
-        print('Unable to create output directory: {}'.format(e))
+        print(f'Unable to create output directory: {e}')
         raise e
 
 
@@ -182,10 +180,7 @@ def list_subtract(original, subtracted):
 
 def list_extract_keys(lst, key_name):
     """Returns an array of values for 'key_name', from a list of dictionaries"""
-    acc = []
-    for d in lst:
-        acc.append(d[key_name])
-    return acc
+    return [d[key_name] for d in lst]
 
 
 # Helpers for the deeply nested fields structure

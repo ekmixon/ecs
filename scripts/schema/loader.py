@@ -98,14 +98,12 @@ def load_schemas_from_git(ref, target_dir='schemas'):
     tree = ecs_helpers.get_tree_by_ref(ref)
     fields_nested = {}
 
-    # Handles case if target dir doesn't exists in git ref
-    if ecs_helpers.path_exists_in_git_tree(tree, target_dir):
-        for blob in tree[target_dir].blobs:
-            if blob.name.endswith('.yml'):
-                new_fields = read_schema_blob(blob, ref)
-                fields_nested = ecs_helpers.safe_merge_dicts(fields_nested, new_fields)
-    else:
+    if not ecs_helpers.path_exists_in_git_tree(tree, target_dir):
         raise KeyError(f"Target directory './{target_dir}' not present in git ref '{ref}'!")
+    for blob in tree[target_dir].blobs:
+        if blob.name.endswith('.yml'):
+            new_fields = read_schema_blob(blob, ref)
+            fields_nested = ecs_helpers.safe_merge_dicts(fields_nested, new_fields)
     return fields_nested
 
 
@@ -120,7 +118,7 @@ def read_schema_blob(blob, ref):
     """Read a raw schema yml git blob into a dict."""
     content = blob.data_stream.read().decode('utf-8')
     raw = yaml.safe_load(content)
-    file_name = "{} (git ref {})".format(blob.name, ref)
+    file_name = f"{blob.name} (git ref {ref})"
     return nest_schema(raw, file_name)
 
 
@@ -134,7 +132,10 @@ def nest_schema(raw, file_name):
     fields = {}
     for schema in raw:
         if 'name' not in schema:
-            raise ValueError("Schema file {} is missing mandatory attribute 'name'".format(file_name))
+            raise ValueError(
+                f"Schema file {file_name} is missing mandatory attribute 'name'"
+            )
+
         fields[schema['name']] = schema
     return fields
 
@@ -148,10 +149,11 @@ def deep_nesting_representation(fields):
         flat_schema['node_name'] = flat_schema['name']
 
         # Schema-only details. Not present on other nested field groups.
-        schema_details = {}
-        for schema_key in ['root', 'group', 'reusable', 'title']:
-            if schema_key in flat_schema:
-                schema_details[schema_key] = flat_schema.pop(schema_key)
+        schema_details = {
+            schema_key: flat_schema.pop(schema_key)
+            for schema_key in ['root', 'group', 'reusable', 'title']
+            if schema_key in flat_schema
+        }
 
         nested_schema = nest_fields(flat_schema.pop('fields', []))
         # Re-assemble new structure
@@ -285,7 +287,7 @@ def eval_globs(globs):
     for g in globs:
         new_files = glob.glob(g)
         if len(new_files) == 0:
-            warn("{} did not match any files".format(g))
+            warn(f"{g} did not match any files")
         else:
             all_files.extend(new_files)
     return all_files

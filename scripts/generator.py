@@ -39,7 +39,7 @@ def main():
     args = argument_parser()
 
     ecs_generated_version = read_version(args.ref)
-    print('Running generator. ECS version ' + ecs_generated_version)
+    print(f'Running generator. ECS version {ecs_generated_version}')
 
     # default location to save files
     out_dir = 'generated'
@@ -60,7 +60,7 @@ def main():
     # Detect usage of experimental changes to tweak artifact version label
     if args.include and loader.EXPERIMENTAL_SCHEMA_DIR in args.include:
         ecs_generated_version += "+exp"
-        print('Experimental ECS version ' + ecs_generated_version)
+        print(f'Experimental ECS version {ecs_generated_version}')
 
     fields = loader.load_schemas(ref=args.ref, included_files=args.include)
     cleaner.clean(fields, strict=args.strict)
@@ -111,7 +111,7 @@ def argument_parser():
 
 def read_version(ref=None):
     if ref:
-        print('Loading schemas from git ref ' + ref)
+        print(f'Loading schemas from git ref {ref}')
         tree = ecs_helpers.get_tree_by_ref(ref)
         return tree['version'].data_stream.read().decode('utf-8').rstrip()
     else:

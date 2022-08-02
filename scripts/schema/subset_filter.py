@@ -29,8 +29,7 @@ def filter(fields, subset_file_globs, out_dir):
         subfields = extract_matching_fields(fields, subset['fields'])
         intermediate_files.generate(subfields, os.path.join(out_dir, 'ecs', 'subset', subset['name']), False)
 
-    merged_subset = combine_all_subsets(subsets)
-    if merged_subset:
+    if merged_subset := combine_all_subsets(subsets):
         fields = extract_matching_fields(fields, merged_subset)
 
     return fields
@@ -48,10 +47,10 @@ def combine_all_subsets(subsets):
 def load_subset_definitions(file_globs):
     if not file_globs:
         return []
-    subsets = loader.load_definitions(file_globs)
-    if not subsets:
-        raise ValueError('--subset specified, but no subsets found in {}'.format(file_globs))
-    return subsets
+    if subsets := loader.load_definitions(file_globs):
+        return subsets
+    else:
+        raise ValueError(f'--subset specified, but no subsets found in {file_globs}')
 
 
 ecs_options = ['fields', 'enabled', 'index']
@@ -75,7 +74,10 @@ def merge_subsets(a, b):
             elif isinstance(a[key]['fields'], dict) and isinstance(b[key]['fields'], dict):
                 merge_subsets(a[key]['fields'], b[key]['fields'])
         elif 'fields' in a[key] or 'fields' in b[key]:
-            raise ValueError("Subsets unmergeable: 'fields' found in key '{}' in only one subset".format(key))
+            raise ValueError(
+                f"Subsets unmergeable: 'fields' found in key '{key}' in only one subset"
+            )
+
         # If both subsets have enabled set to False, this will leave enabled: False in the merged subset
         # Otherwise, enabled is removed and is implicitly true
         if a[key].get('enabled', True) or b[key].get('enabled', True):
@@ -102,12 +104,11 @@ def extract_matching_fields(fields, subset_definitions):
         # If the field in the schema has a 'fields' key, we expect a 'fields' key in the subset
         if 'fields' in fields[key]:
             if 'fields' not in val:
-                raise ValueError("'fields' key expected, not found in subset for {}".format(key))
+                raise ValueError(f"'fields' key expected, not found in subset for {key}")
             elif isinstance(val['fields'], dict):
                 retained_fields[key]['fields'] = extract_matching_fields(fields[key]['fields'], val['fields'])
             elif val['fields'] != "*":
-                raise ValueError("Unexpected value '{}' found in 'fields' key".format(val['fields']))
-        # If the field in the schema does not have a 'fields' key, there should not be a 'fields' key in the subset
+                raise ValueError(f"Unexpected value '{val['fields']}' found in 'fields' key")
         elif 'fields' in val:
-            raise ValueError("'fields' key not expected, found in subset for {}".format(key))
+            raise ValueError(f"'fields' key not expected, found in subset for {key}")
     return retained_fields

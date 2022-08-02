@@ -52,14 +52,15 @@ def render_nestings_reuse_section(fieldset):
     """
     if not fieldset.get('reused_here'):
         return None
-    rows = []
-    for reused_here_entry in fieldset['reused_here']:
-        rows.append({
-            'flat_nesting': "{}.*".format(reused_here_entry['full']),
+    rows = [
+        {
+            'flat_nesting': f"{reused_here_entry['full']}.*",
             'name': reused_here_entry['schema_name'],
             'short': reused_here_entry['short'],
-            'beta': reused_here_entry.get('beta', '')
-        })
+            'beta': reused_here_entry.get('beta', ''),
+        }
+        for reused_here_entry in fieldset['reused_here']
+    ]
 
     return sorted(rows, key=lambda x: x['flat_nesting'])
 
@@ -71,9 +72,11 @@ def extract_allowed_values_key_names(field):
 
     :param field: The target field
     """
-    if not field.get('allowed_values'):
-        return []
-    return ecs_helpers.list_extract_keys(field['allowed_values'], 'name')
+    return (
+        ecs_helpers.list_extract_keys(field['allowed_values'], 'name')
+        if field.get('allowed_values')
+        else []
+    )
 
 
 def sort_fields(fieldset):
@@ -187,8 +190,8 @@ def generate_field_details_page(fieldset):
 @templated('field_values.j2')
 def page_field_values(nested, template_name='field_values_template.j2'):
     category_fields = ['event.kind', 'event.category', 'event.type', 'event.outcome']
-    nested_fields = []
-    for cat_field in category_fields:
-        nested_fields.append(nested['event']['fields'][cat_field])
+    nested_fields = [
+        nested['event']['fields'][cat_field] for cat_field in category_fields
+    ]
 
     return dict(fields=nested_fields)

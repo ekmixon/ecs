@@ -85,8 +85,11 @@ def all_component_templates(ecs_nested, ecs_version, out_dir):
 
 
 def save_component_template(template_name, ecs_version, out_dir, field_mappings):
-    filename = join(out_dir, template_name) + ".json"
-    reference_url = "https://www.elastic.co/guide/en/ecs/current/ecs-{}.html".format(template_name)
+    filename = f"{join(out_dir, template_name)}.json"
+    reference_url = (
+        f"https://www.elastic.co/guide/en/ecs/current/ecs-{template_name}.html"
+    )
+
 
     template = {
         'template': {'mappings': {'properties': field_mappings}},
@@ -100,21 +103,20 @@ def save_component_template(template_name, ecs_version, out_dir, field_mappings)
 
 def component_name_convention(ecs_version, ecs_nested):
     version = ecs_version.replace('+', '-')
-    names = []
-    for (fieldset_name, fieldset) in candidate_components(ecs_nested).items():
-        names.append("ecs_{}_{}".format(version, fieldset_name.lower()))
-    return names
+    return [
+        f"ecs_{version}_{fieldset_name.lower()}"
+        for fieldset_name, fieldset in candidate_components(ecs_nested).items()
+    ]
 
 
 def candidate_components(ecs_nested):
     """Returns same structure as ecs_nested, but skips all field sets with reusable.top_level: False"""
-    components = {}
-    for (fieldset_name, fieldset) in ecs_nested.items():
-        if fieldset.get('reusable', None):
-            if not fieldset['reusable']['top_level']:
-                continue
-        components[fieldset_name] = fieldset
-    return components
+    return {
+        fieldset_name: fieldset
+        for fieldset_name, fieldset in ecs_nested.items()
+        if not fieldset.get('reusable', None)
+        or fieldset['reusable']['top_level']
+    }
 
 
 # Legacy template
@@ -139,7 +141,7 @@ def generate_legacy_template_version(es_version, ecs_version, mappings_section, 
     ecs_helpers.make_dirs(join(out_dir, 'elasticsearch', str(es_version)))
     template = template_settings(es_version, ecs_version, mappings_section, template_settings_file)
 
-    filename = join(out_dir, "elasticsearch/{}/template.json".format(es_version))
+    filename = join(out_dir, f"elasticsearch/{es_version}/template.json")
     save_json(filename, template)
 
 
@@ -158,19 +160,22 @@ def dict_add_nested(dct, name_parts, value):
             rest_name_parts,
             value)
 
+    elif (
+        current_nesting in dct
+        and 'type' in value
+        and value['type'] == 'object'
+    ):
+        return
     else:
-        if current_nesting in dct and 'type' in value and 'object' == value['type']:
-            return
         dct[current_nesting] = value
 
 
 def entry_for(field):
     field_entry = {'type': field['type']}
     try:
-        if field['type'] == 'object' or field['type'] == 'nested':
+        if field['type'] in ['object', 'nested']:
             if 'enabled' in field and not field['enabled']:
                 ecs_helpers.dict_copy_existing_keys(field, field_entry, ['enabled'])
-        # the index field is only valid for field types that are not object and nested
         elif 'index' in field and not field['index']:
             ecs_helpers.dict_copy_existing_keys(field, field_entry, ['index', 'doc_values'])
 
@@ -197,7 +202,7 @@ def entry_for(field):
                 field_entry['fields'][mf['name']] = mf_entry
 
     except KeyError as ex:
-        print("Exception {} occurred for field {}".format(ex, field))
+        print(f"Exception {ex} occurred for field {field}")
         raise ex
     return field_entry
 
@@ -245,9 +250,7 @@ def template_settings(es_version, ecs_version, mappings_section, template_settin
 
 
 def save_json(file, data):
-    open_mode = "wb"
-    if sys.version_info >= (3, 0):
-        open_mode = "w"
+    open_mode = "w" if sys.version_info >= (3, 0) else "wb"
     with open(file, open_mode) as jsonfile:
         json.dump(data, jsonfile, indent=2, sort_keys=True)
         jsonfile.write('\n')
@@ -299,16 +302,14 @@ def es6_type_fallback(mappings):
 
     for (name, details) in mappings.items():
         if 'type' in details:
-            fallback_type = TYPE_FALLBACKS.get(details['type'])
-            if fallback_type:
+            if fallback_type := TYPE_FALLBACKS.get(details['type']):
                 mappings[name]['type'] = fallback_type
                 field_or_multi_field_datatype_defaults(mappings[name])
         # support multi-fields
         if 'fields' in details:
             # potentially multiple multi-fields
             for field_name, field_value in details['fields'].items():
-                fallback_type = TYPE_FALLBACKS.get(field_value['type'])
-                if fallback_type:
+                if fallback_type := TYPE_FALLBACKS.get(field_value['type']):
                     mappings[name]['fields'][field_name]['type'] = fallback_type
                     field_or_multi_field_datatype_defaults(mappings[name]['fields'][field_name])
         if 'properties' in details:

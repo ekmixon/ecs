@@ -23,16 +23,14 @@ from schema import loader
 
 
 def exclude(fields, exclude_file_globs):
-    excludes = load_exclude_definitions(exclude_file_globs)
-
-    if excludes:
+    if excludes := load_exclude_definitions(exclude_file_globs):
         fields = exclude_fields(fields, excludes)
 
     return fields
 
 
 def long_path(path_as_list):
-    return '.'.join([e for e in path_as_list])
+    return '.'.join(list(path_as_list))
 
 
 def pop_field(fields, node_path, path, removed):
@@ -52,12 +50,18 @@ def pop_field(fields, node_path, path, removed):
                 return popped
             else:
                 raise ValueError(
-                    '--exclude specified, but no path to field {} found'.format(long_path(path)))
+                    f'--exclude specified, but no path to field {long_path(path)} found'
+                )
+
     else:
         this_long_path = long_path(path)
         # Check in case already removed parent
-        if not any([this_long_path.startswith(long_path) for long_path in removed if long_path != None]):
-            raise ValueError('--exclude specified, but no field {} found'.format(this_long_path))
+        if not any(
+            this_long_path.startswith(long_path)
+            for long_path in removed
+            if long_path != None
+        ):
+            raise ValueError(f'--exclude specified, but no field {this_long_path} found')
 
 
 def exclude_trace_path(fields, item, path, removed):
@@ -67,14 +71,13 @@ def exclude_trace_path(fields, item, path, removed):
         # cater for name.with.dots
         for name in list_item['name'].split('.'):
             node_path.append(name)
-        if not 'fields' in list_item:
-            parent = node_path[0]
-            removed.append(pop_field(fields, node_path, node_path.copy(), removed))
-            # if parent field has no remaining fields and not 'base', pop it
-            if parent != 'base' and parent in fields and len(fields[parent]['fields']) == 0:
-                fields.pop(parent)
-        else:
-            raise ValueError('--exclude specified, can\'t parse fields in file {}'.format(item))
+        if 'fields' in list_item:
+            raise ValueError(f"--exclude specified, can\'t parse fields in file {item}")
+        parent = node_path[0]
+        removed.append(pop_field(fields, node_path, node_path.copy(), removed))
+        # if parent field has no remaining fields and not 'base', pop it
+        if parent != 'base' and parent in fields and len(fields[parent]['fields']) == 0:
+            fields.pop(parent)
 
 
 def exclude_fields(fields, excludes):
@@ -89,7 +92,9 @@ def exclude_fields(fields, excludes):
 def load_exclude_definitions(file_globs):
     if not file_globs:
         return []
-    excludes = loader.load_definitions(file_globs)
-    if not excludes:
-        raise ValueError('--exclude specified, but no exclusions found in {}'.format(file_globs))
-    return excludes
+    if excludes := loader.load_definitions(file_globs):
+        return excludes
+    else:
+        raise ValueError(
+            f'--exclude specified, but no exclusions found in {file_globs}'
+        )

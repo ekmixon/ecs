@@ -73,7 +73,7 @@ def generate_nested_fields(fields):
         # TODO Temporarily removed to simplify initial rewrite review
         fieldset_details.pop('dashed_name')
         fieldset_details.pop('flat_name')
-        if False == fieldset_details['root']:
+        if fieldset_details['root'] == False:
             fieldset_details.pop('root')
 
         fieldset_fields = {}
@@ -105,8 +105,9 @@ def remove_non_root_reusables(fields_nested):
     the official information about each field set. It's the responsibility of
     users consuming ecs_nested.yml to skip the field sets with top_level=false.
     """
-    fields = {}
-    for (name, field) in fields_nested.items():
-        if 'reusable' not in field['schema_details'] or field['schema_details']['reusable']['top_level']:
-            fields[name] = field
-    return fields
+    return {
+        name: field
+        for name, field in fields_nested.items()
+        if 'reusable' not in field['schema_details']
+        or field['schema_details']['reusable']['top_level']
+    }

@@ -30,7 +30,7 @@ def generate(ecs_nested, ecs_version, out_dir):
     allowed_fieldset_keys = ['name', 'title', 'group', 'description', 'footnote', 'type']
     # other fieldsets
     for fieldset_name in sorted(ecs_nested):
-        if 'base' == fieldset_name:
+        if fieldset_name == 'base':
             continue
         fieldset = ecs_nested[fieldset_name]
 
@@ -66,7 +66,7 @@ def fieldset_field_array(source_fields, df_allowlist, fieldset_prefix):
     for nested_field_name in source_fields:
         ecs_field = source_fields[nested_field_name]
         beats_field = ecs_helpers.dict_copy_keys_ordered(ecs_field, allowed_keys)
-        if '' == fieldset_prefix:
+        if fieldset_prefix == '':
             contextual_name = nested_field_name
         else:
             contextual_name = '.'.join(nested_field_name.split('.')[1:])
@@ -76,7 +76,10 @@ def fieldset_field_array(source_fields, df_allowlist, fieldset_prefix):
             for mf in ecs_field['multi_fields']:
                 # Set default_field if necessary. Avoid adding the key if the parent
                 # field already is marked with default_field: false.
-                if not mf['flat_name'] in df_allowlist and ecs_field['flat_name'] in df_allowlist:
+                if (
+                    mf['flat_name'] not in df_allowlist
+                    and ecs_field['flat_name'] in df_allowlist
+                ):
                     mf['default_field'] = False
                 cleaned_multi_fields.append(
                     ecs_helpers.dict_copy_keys_ordered(mf, multi_fields_allowed_keys))
@@ -84,7 +87,7 @@ def fieldset_field_array(source_fields, df_allowlist, fieldset_prefix):
 
         beats_field['name'] = contextual_name
 
-        if not ecs_field['flat_name'] in df_allowlist:
+        if ecs_field['flat_name'] not in df_allowlist:
             beats_field['default_field'] = False
 
         fields.append(beats_field)
